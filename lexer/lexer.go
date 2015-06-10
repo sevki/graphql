@@ -34,8 +34,10 @@ const (
 	LeftCurly
 	RightCurly
 	LeftParen
-	Quote
 	RightParen
+	LeftBrac
+	RightBrac
+	Quote
 	Colon
 	Comma
 	Semicolon
@@ -173,11 +175,20 @@ func lexAny(l *Lexer) stateFn {
 		case r == '{':
 			l.emit(LeftCurly)
 			return lexAny
+		case r == '[':
+			l.emit(LeftBrac)
+			return lexAny
+		case r == '(':
+			l.emit(LeftCurly)
+			return lexAny
 		case r == ')':
 			l.emit(RightParen)
 			return lexAny
 		case r == '}':
 			l.emit(RightCurly)
+			return lexAny
+		case r == ']':
+			l.emit(RightBrac)
 			return lexAny
 		case r == ':':
 			l.emit(Colon)

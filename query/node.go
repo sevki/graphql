@@ -7,13 +7,14 @@
 package query
 
 type Node struct {
-	Name   []byte
+	Name   UString
 	Parent *Node `json:"-"`
 	Edges  []Node
 	Params []Param
 }
 
 type ParamType int
+type UString []byte
 
 const (
 	Empty ParamType = iota
@@ -22,31 +23,32 @@ const (
 	Tuple
 )
 
-type Param interface {
-	Type() ParamType
-}
-
 type IntParam struct {
 	Value int
 }
 
-func (i IntParam) Type() ParamType {
-	return Int
+type StringParam struct {
+	Value UString
 }
 
 type TupleParam struct {
-	Key   []byte
+	Key   UString
 	Value Param
 }
 
-func (i TupleParam) Type() ParamType {
-	return Tuple
+type ArrayParam []ParamPrimitive
+
+type Param interface {
+	isParam()
+}
+type ParamPrimitive interface {
+	isPrim()
 }
 
-type StringParam struct {
-	Value []byte
-}
+func (i IntParam) isParam()    {}
+func (i TupleParam) isParam()  {}
+func (i StringParam) isParam() {}
+func (i ArrayParam) isParam()  {}
 
-func (i StringParam) Type() ParamType {
-	return String
-}
+func (i IntParam) isPrim()    {}
+func (i StringParam) isPrim() {}

@@ -49,7 +49,7 @@ func (p *Parser) errorf(format string, args ...interface{}) {
 	p.curTok = lexer.Token{Type: lexer.Error}
 	p.peekTok = lexer.Token{Type: lexer.EOF}
 	p.Error = fmt.Errorf(format, args...)
-	//	log.Panicln(p.Error.Error())
+	//	log.panicln(p.Error.Error())
 }
 func New(name string, r io.ByteReader) *Parser {
 	p := &Parser{
@@ -105,14 +105,14 @@ func parseNode(p *Parser) stateFn {
 			return parseParams
 		}
 	} else {
-		p.Panic("We were expecting a node here")
+		p.panic("We were expecting a node here")
 	}
 	return parseAny
 }
 func parseEdges(p *Parser) stateFn {
 	t := p.peek()
 	if t.Type != lexer.String {
-		p.Panic("This is not a valid edge name")
+		p.panic("This is not a valid edge name")
 	}
 	p.ptr.Edges = append(p.ptr.Edges, query.Node{})
 	k := p.ptr
@@ -144,10 +144,10 @@ func parseParams(p *Parser) stateFn {
 				if inty, err := strconv.Atoi(string(t.Text)); err == nil {
 					param.Value = query.IntParam{Value: inty}
 				} else {
-					p.Panic("Unsupported number as parameter.")
+					p.panic("Unsupported number as parameter.")
 				}
 			} else {
-				p.Panic("Unsupported param tuple value.")
+				p.panic("Unsupported param tuple value.")
 				return nil
 			}
 			p.ptr.Params = append(p.ptr.Params, param)
@@ -164,10 +164,10 @@ func parseParams(p *Parser) stateFn {
 					)
 					continue
 				} else {
-					p.Panic("Unsupported number as parameter.")
+					p.panic("Unsupported number as parameter.")
 				}
 			} else {
-				p.Panic("Unsupported param value.")
+				p.panic("Unsupported param value.")
 				return nil
 			}
 		}
@@ -177,7 +177,7 @@ func parseParams(p *Parser) stateFn {
 func parseCall(p *Parser) stateFn {
 	return parseAny
 }
-func (p *Parser) Panic(message string) {
+func (p *Parser) panic(message string) {
 	p.errorf("%s\nIllegal element '%s' (of type %s) at line %d, character %d\n",
 		message,
 		p.curTok.Text,
@@ -186,9 +186,6 @@ func (p *Parser) Panic(message string) {
 		p.lexer.Pos(),
 	)
 }
-func (p *Parser) Tree() *query.Node {
-	return p.root
-}
 
 func NewQuery(query []byte) (*query.Node, error) {
 	sq := bytes.NewBuffer([]byte(query))
@@ -196,6 +193,7 @@ func NewQuery(query []byte) (*query.Node, error) {
 	if p = New("sq", sq); p.curTok.Type == lexer.Error {
 		return nil, p.Error
 	} else {
-		return p.Tree(), nil
+
+		return p.root, nil
 	}
 }
