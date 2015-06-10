@@ -71,7 +71,20 @@ func (p *Parser) run() {
 
 	}
 }
-
+func parseAny(p *Parser) stateFn {
+	switch p.next().Type {
+	case lexer.Period:
+		return nil
+	case lexer.LeftCurly:
+		return parseEdges
+	case lexer.Comma:
+		p.ptr = p.ptr.Parent
+		return parseEdges
+	default:
+		return nil
+	}
+	return nil
+}
 func parseGraph(p *Parser) stateFn {
 	if p.next().Type == lexer.LeftCurly {
 		// We are in the RootQuery
@@ -84,25 +97,11 @@ func parseGraph(p *Parser) stateFn {
 	}
 
 }
-func parseAny(p *Parser) stateFn {
-	switch p.next().Type {
-	case lexer.Period:
-		return parseFunction
-	case lexer.LeftCurly:
-		return parseEdges
-	case lexer.Comma:
-		p.ptr = p.ptr.Parent
-		return parseEdges
-	default:
-		return nil
-	}
-	return nil
-}
+
 func parseNode(p *Parser) stateFn {
 	if t := p.next(); t.Type == lexer.String {
 		p.ptr.Name = t.Text
 		if p.peek().Type == lexer.LeftParen {
-			p.ptr.Call = &query.Call{Call: nil}
 			return parseParams
 		}
 	} else {
@@ -121,29 +120,8 @@ func parseEdges(p *Parser) stateFn {
 	p.ptr.Parent = k
 	return parseNode
 }
-func parseFunction(p *Parser) stateFn {
-
-	call := p.ptr.Call
-	for {
-		if call.Call == nil {
-			break
-		}
-		call = call.Call
-	}
-	call.Call = &query.Call{Name: p.next().Text}
-	return parseParams
-}
 func parseParams(p *Parser) stateFn {
-	call := p.ptr.Call
 	for {
-		if call.Call == nil {
-			break
-		}
-		call = call.Call
-	}
-
-	for {
-
 		t := p.next()
 
 		switch t.Type {
@@ -172,16 +150,16 @@ func parseParams(p *Parser) stateFn {
 				p.Panic("Unsupported param tuple value.")
 				return nil
 			}
-			call.Params = append(call.Params, param)
+			p.ptr.Params = append(p.ptr.Params, param)
 		} else {
 			if t.Type == lexer.Quote {
-				call.Params = append(call.Params,
+				p.ptr.Params = append(p.ptr.Params, //call.Params,
 					query.StringParam{Value: t.Text[1 : len(t.Text)-1]},
 				)
 				continue
 			} else if t.Type == lexer.Number {
 				if inty, err := strconv.Atoi(string(t.Text)); err == nil {
-					call.Params = append(call.Params,
+					p.ptr.Params = append(p.ptr.Params,
 						query.IntParam{Value: inty},
 					)
 					continue
