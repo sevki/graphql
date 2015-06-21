@@ -11,8 +11,6 @@ import (
 	"fmt"
 	"io"
 
-	"strconv"
-
 	"sevki.org/graphql/lexer"
 	"sevki.org/graphql/query"
 )
@@ -121,6 +119,7 @@ func parseEdges(p *Parser) stateFn {
 	return parseNode
 }
 func parseParams(p *Parser) stateFn {
+	p.ptr.Params = make(map[string]query.Param)
 	for {
 		t := p.next()
 
@@ -130,53 +129,37 @@ func parseParams(p *Parser) stateFn {
 		case lexer.Comma, lexer.LeftParen:
 			return parseParams
 		}
-
+		var param query.Param
 		// If our next token is a tuple
-		if p.peek().Type == lexer.Colon {
-			param := query.TupleParam{}
-			param.Key = t.Text
-
-			p.next() // advance colon
-
-			if t = p.next(); t.Type == lexer.Quote {
-				param.Value = query.StringParam{Value: t.Text[1 : len(t.Text)-1]}
-			} else if t.Type == lexer.Number {
-				if inty, err := strconv.Atoi(string(t.Text)); err == nil {
-					param.Value = query.IntParam{Value: inty}
-				} else {
-					p.panic("Unsupported number as parameter.")
-				}
-			} else {
-				p.panic("Unsupported param tuple value.")
-				return nil
-			}
-			p.ptr.Params = append(p.ptr.Params, param)
-		} else {
-			if t.Type == lexer.Quote {
-				p.ptr.Params = append(p.ptr.Params, //call.Params,
-					query.StringParam{Value: t.Text[1 : len(t.Text)-1]},
-				)
-				continue
-			} else if t.Type == lexer.Number {
-				if inty, err := strconv.Atoi(string(t.Text)); err == nil {
-					p.ptr.Params = append(p.ptr.Params,
-						query.IntParam{Value: inty},
-					)
-					continue
-				} else {
-					p.panic("Unsupported number as parameter.")
-				}
-			} else {
-				p.panic("Unsupported param value.")
-				return nil
-			}
+		if p.peek().Type != lexer.Colon || p.peek().Type != lexer.Comma {
+			p.panic("Params need to be named.")
 		}
+		key := t.Text
+
+		p.next() // advance colon
+
+		switch p.peek().Type {
+		case lexer.Number:
+			param = query.IntParam{}
+		case lexer.Quote:
+			param = query.StringParam{}
+		}
+
+		if t = p.next(); true {
+			param = param.Set(t)
+		} else {
+			p.panic("Unsupported param value.")
+			return nil
+		}
+
+		p.ptr.Params[string(key)] = param
 	}
 	return parseAny
 }
-func parseCall(p *Parser) stateFn {
+func parseArray(p *Parser) stateFn {
 	return parseAny
 }
+
 func (p *Parser) panic(message string) {
 	p.errorf("%s\nIllegal element '%s' (of type %s) at line %d, character %d\n",
 		message,
@@ -196,4 +179,13 @@ func NewQuery(query []byte) (*query.Node, error) {
 
 		return p.root, nil
 	}
+}
+
+// Decode decodes a graphql query.
+func (p *Parser) Decode(i interface{}) (err error) {
+	if p.curTok.Type == lexer.Error {
+		return p.Error
+	}
+	i = p.root
+	return nil
 }

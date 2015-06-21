@@ -6,15 +6,22 @@
 
 package query
 
+import (
+	"fmt"
+	"strconv"
+
+	"sevki.org/graphql/lexer"
+)
+
 type Node struct {
 	Name   UString
 	Parent *Node `json:"-"`
 	Edges  []Node
-	Params []Param
+	Params map[string]Param
 }
 
 type ParamType int
-type UString []byte
+type UString []uint8
 
 const (
 	Empty ParamType = iota
@@ -40,6 +47,8 @@ type ArrayParam []ParamPrimitive
 
 type Param interface {
 	isParam()
+	Set(lexer.Token) Param
+	String() string
 }
 type ParamPrimitive interface {
 	isPrim()
@@ -52,3 +61,45 @@ func (i ArrayParam) isParam()  {}
 
 func (i IntParam) isPrim()    {}
 func (i StringParam) isPrim() {}
+
+func (i IntParam) Set(t lexer.Token) Param {
+	if inty, err := strconv.Atoi(string(t.Text)); err == nil {
+		i.Value = inty
+	}
+	return i
+}
+
+func (i StringParam) Set(t lexer.Token) Param {
+
+	if t.Type == lexer.Quote {
+		i.Value = t.Text[1 : len(t.Text)-1]
+	}
+	return i
+}
+
+func (i TupleParam) Set(t lexer.Token) Param {
+
+	switch t.Type {
+	case lexer.Number:
+		i.Value = IntParam{}
+	case lexer.Quote:
+		i.Value = StringParam{}
+	}
+
+	return i.Value.Set(t)
+}
+
+func (i ArrayParam) Set(lexer.Token) {}
+func (i TupleParam) SetKey(t UString) {
+	i.Key = t
+}
+
+func (i IntParam) String() (str string) {
+	str = fmt.Sprintf("%d", i.Value)
+	return
+}
+
+func (i StringParam) String() (str string) {
+	str = fmt.Sprintf("%v", i)
+	return
+}

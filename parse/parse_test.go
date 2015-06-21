@@ -34,7 +34,7 @@ func TestComplexQuery(t *testing.T) {
     id,
     name,
     isViewerFriend,
-    profilePicture(userid: "bla", size: 50).Limit(123).Delete("Yes")  {
+    profilePicture(userid: "bla", size: 50) {
       uri,
       width,
       height
