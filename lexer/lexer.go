@@ -4,7 +4,7 @@
 
 //go:generate stringer -type Type
 
-package lexer
+package lexer // import "sevki.org/graphql/lexer"
 
 import (
 	"fmt"
@@ -246,7 +246,7 @@ func lexComment(l *Lexer) stateFn {
 	for !isEndOfLine(l.peek()) {
 		l.next()
 	}
-	l.emit(Comment)
+	l.ignore()
 	return lexAny
 }
 

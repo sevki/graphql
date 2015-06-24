@@ -4,9 +4,9 @@ package query
 
 import "fmt"
 
-const _ParamType_name = "EmptyIntStringTuple"
+const _ParamType_name = "EmptyIntStringVariableTuple"
 
-var _ParamType_index = [...]uint8{0, 5, 8, 14, 19}
+var _ParamType_index = [...]uint8{0, 5, 8, 14, 22, 27}
 
 func (i ParamType) String() string {
 	if i < 0 || i+1 >= ParamType(len(_ParamType_index)) {

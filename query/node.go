@@ -4,7 +4,7 @@
 
 //go:generate stringer -type ParamType
 
-package query
+package query // import "sevki.org/graphql/query"
 
 import (
 	"fmt"
@@ -27,13 +27,16 @@ const (
 	Empty ParamType = iota
 	Int
 	String
+	Variable
 	Tuple
 )
 
 type IntParam struct {
 	Value int
 }
-
+type VariableParam struct {
+	Value string
+}
 type StringParam struct {
 	Value UString
 }
@@ -54,10 +57,11 @@ type ParamPrimitive interface {
 	isPrim()
 }
 
-func (i IntParam) isParam()    {}
-func (i TupleParam) isParam()  {}
-func (i StringParam) isParam() {}
-func (i ArrayParam) isParam()  {}
+func (i IntParam) isParam()      {}
+func (i TupleParam) isParam()    {}
+func (i StringParam) isParam()   {}
+func (i ArrayParam) isParam()    {}
+func (i VariableParam) isParam() {}
 
 func (i IntParam) isPrim()    {}
 func (i StringParam) isPrim() {}
@@ -69,6 +73,11 @@ func (i IntParam) Set(t lexer.Token) Param {
 	return i
 }
 
+func (i VariableParam) Set(t lexer.Token) Param {
+	i.Value = string(t.Text)
+
+	return i
+}
 func (i StringParam) Set(t lexer.Token) Param {
 
 	if t.Type == lexer.Quote {
@@ -100,6 +109,11 @@ func (i IntParam) String() (str string) {
 }
 
 func (i StringParam) String() (str string) {
-	str = fmt.Sprintf("%v", i)
+	str = fmt.Sprintf("%v", string(i.Value))
+	return
+}
+
+func (i VariableParam) String() (str string) {
+	str = fmt.Sprintf("%v", i.Value)
 	return
 }

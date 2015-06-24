@@ -119,7 +119,9 @@ func parseEdges(p *Parser) stateFn {
 	return parseNode
 }
 func parseParams(p *Parser) stateFn {
-	p.ptr.Params = make(map[string]query.Param)
+	if p.ptr.Params == nil {
+		p.ptr.Params = make(map[string]query.Param)
+	}
 	for {
 		t := p.next()
 
@@ -143,15 +145,15 @@ func parseParams(p *Parser) stateFn {
 			param = query.IntParam{}
 		case lexer.Quote:
 			param = query.StringParam{}
-		}
-
-		if t = p.next(); true {
-			param = param.Set(t)
-		} else {
+		case lexer.Variable:
+			param = query.VariableParam{}
+		default:
 			p.panic("Unsupported param value.")
 			return nil
 		}
 
+		t = p.next()
+		param = param.Set(t)
 		p.ptr.Params[string(key)] = param
 	}
 	return parseAny
