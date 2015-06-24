@@ -21,6 +21,9 @@ const testQuery = `{
     },
     firends.Limit(20) {
       id
+      user(id: $id) {
+         name
+      }
     }
     # This is tircky
     profilePicture(size: 50)  {

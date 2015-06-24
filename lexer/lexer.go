@@ -43,6 +43,7 @@ const (
 	Semicolon
 	Period
 	Comment
+	Variable
 )
 
 // stateFn represents the state of the scanner as a function that returns the next state.
@@ -173,6 +174,8 @@ func lexAny(l *Lexer) stateFn {
 			return lexNumber
 		case unicode.IsLetter(r):
 			return lexAlphaNumeric
+		case r == '$':
+			return lexVariable
 		case r == '#':
 			return lexComment
 		case r == '{':
@@ -227,6 +230,15 @@ func lexQuote(l *Lexer) stateFn {
 			r)
 	}
 
+	return lexAny
+}
+
+func lexVariable(l *Lexer) stateFn {
+	l.ignore()
+	for isAlphaNumeric(l.peek()) {
+		l.next()
+	}
+	l.emit(Variable)
 	return lexAny
 }
 
