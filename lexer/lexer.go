@@ -42,6 +42,7 @@ const (
 	Comma
 	Semicolon
 	Period
+	Comment
 )
 
 // stateFn represents the state of the scanner as a function that returns the next state.
@@ -172,6 +173,8 @@ func lexAny(l *Lexer) stateFn {
 			return lexNumber
 		case unicode.IsLetter(r):
 			return lexAlphaNumeric
+		case r == '#':
+			return lexComment
 		case r == '{':
 			l.emit(LeftCurly)
 			return lexAny
@@ -227,6 +230,14 @@ func lexQuote(l *Lexer) stateFn {
 	return lexAny
 }
 
+func lexComment(l *Lexer) stateFn {
+	for !isEndOfLine(l.peek()) {
+		l.next()
+	}
+	l.emit(Comment)
+	return lexAny
+}
+
 // lexSpace scans a run of space characters.
 // One space has already been seen.
 func lexAlphaNumeric(l *Lexer) stateFn {
@@ -266,8 +277,13 @@ func isEndOfLine(r rune) bool {
 }
 
 // isAlphaNumeric reports whether r is an alphabetic, digit, or underscore.
+func isString(r rune) bool {
+	return r == '_' || unicode.IsLetter(r)
+}
+
+// isAlphaNumeric reports whether r is an alphabetic, digit, or underscore.
 func isAlphaNumeric(r rune) bool {
-	return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r)
+	return isString(r) || unicode.IsDigit(r)
 }
 
 func isValidQuote(r rune) bool {

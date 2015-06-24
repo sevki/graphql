@@ -22,6 +22,7 @@ const testQuery = `{
     firends.Limit(20) {
       id
     }
+    # This is tircky
     profilePicture(size: 50)  {
       uri,
       width,

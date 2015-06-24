@@ -4,9 +4,9 @@ package lexer
 
 import "fmt"
 
-const _Type_name = "EOFErrorNewlineStringSpaceNumberLeftCurlyRightCurlyLeftParenRightParenLeftBracRightBracQuoteColonCommaSemicolonPeriod"
+const _Type_name = "EOFErrorNewlineStringSpaceNumberLeftCurlyRightCurlyLeftParenRightParenLeftBracRightBracQuoteColonCommaSemicolonPeriodComment"
 
-var _Type_index = [...]uint8{0, 3, 8, 15, 21, 26, 32, 41, 51, 60, 70, 78, 87, 92, 97, 102, 111, 117}
+var _Type_index = [...]uint8{0, 3, 8, 15, 21, 26, 32, 41, 51, 60, 70, 78, 87, 92, 97, 102, 111, 117, 124}
 
 func (i Type) String() string {
 	if i < 0 || i+1 >= Type(len(_Type_index)) {
