@@ -105,7 +105,7 @@ func TestApplyContext(t *testing.T) {
 		t.Error(err.Error())
 		ctx := make(map[string]interface{})
 		ctx["id"] = 12
-		_, err := query.ApplyContext(*ast, ctx)
+		_, err := query.ApplyContext(ast, ctx)
 		if err != nil {
 			t.Error(err)
 		}
