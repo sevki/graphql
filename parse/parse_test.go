@@ -8,19 +8,20 @@ import (
 	"log"
 	"testing"
 
+	"sevki.org/graphql/query"
 	"sevki.org/lib/prettyprint"
 )
 
 func TestSimpleQuery(t *testing.T) {
 	t.Parallel()
-	const query = `{
+	const qry = `{
   user(id: 3500401) {
     id,
     name,
     isViewerFriend
   }
 }`
-	if ast, err := NewQuery([]byte(query)); err != nil {
+	if ast, err := NewQuery([]byte(qry)); err != nil {
 		t.Error(err.Error())
 	} else {
 		log.Printf(prettyprint.AsJSON(*ast))
@@ -29,7 +30,7 @@ func TestSimpleQuery(t *testing.T) {
 }
 func TestComplexQuery(t *testing.T) {
 	t.Parallel()
-	const query = `{
+	const qry = `{
   user(id: 3500401) {
     id,
     name,
@@ -41,7 +42,7 @@ func TestComplexQuery(t *testing.T) {
     }
   }
 }`
-	if ast, err := NewQuery([]byte(query)); err != nil {
+	if ast, err := NewQuery([]byte(qry)); err != nil {
 		t.Error(err.Error())
 	} else {
 		log.Printf(prettyprint.AsJSON(*ast))
@@ -49,7 +50,7 @@ func TestComplexQuery(t *testing.T) {
 }
 func TestCommentQuery(t *testing.T) {
 	t.Parallel()
-	const query = `{
+	const qry = `{
   user(id: 3500401) {
     id,
     name,
@@ -62,7 +63,7 @@ func TestCommentQuery(t *testing.T) {
     }
   }
 }`
-	if ast, err := NewQuery([]byte(query)); err != nil {
+	if ast, err := NewQuery([]byte(qry)); err != nil {
 		t.Error(err.Error())
 	} else {
 		log.Printf(prettyprint.AsJSON(*ast))
@@ -70,7 +71,7 @@ func TestCommentQuery(t *testing.T) {
 }
 func TestVariabledQuery(t *testing.T) {
 	t.Parallel()
-	const query = `{
+	const qry = `{
   # asdasd
   user(id: 3500401) {
     id,
@@ -84,9 +85,33 @@ func TestVariabledQuery(t *testing.T) {
     }
   }
 }`
-	if ast, err := NewQuery([]byte(query)); err != nil {
+	if ast, err := NewQuery([]byte(qry)); err != nil {
 		t.Error(err.Error())
 	} else {
 		log.Printf(prettyprint.AsJSON(*ast))
 	}
+}
+
+func TestApplyContext(t *testing.T) {
+	t.Parallel()
+	const qry = `{
+  user(id: $id) {
+    id,
+    name,
+    isViewerFriend
+  }
+}`
+	if ast, err := NewQuery([]byte(qry)); err != nil {
+		t.Error(err.Error())
+		ctx := make(map[string]interface{})
+		ctx["id"] = 12
+		_, err := query.ApplyContext(*ast, ctx)
+		if err != nil {
+			t.Error(err)
+		}
+
+	} else {
+		log.Printf(prettyprint.AsJSON(*ast))
+	}
+
 }

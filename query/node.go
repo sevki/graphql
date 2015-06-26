@@ -7,7 +7,9 @@
 package query // import "sevki.org/graphql/query"
 
 import (
+	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 
 	"sevki.org/graphql/lexer"
@@ -32,7 +34,7 @@ const (
 )
 
 type IntParam struct {
-	Value int
+	Value int64
 }
 type VariableParam struct {
 	Value string
@@ -68,7 +70,7 @@ func (i StringParam) isPrim() {}
 
 func (i IntParam) Set(t lexer.Token) Param {
 	if inty, err := strconv.Atoi(string(t.Text)); err == nil {
-		i.Value = inty
+		i.Value = int64(inty)
 	}
 	return i
 }
@@ -115,5 +117,29 @@ func (i StringParam) String() (str string) {
 
 func (i VariableParam) String() (str string) {
 	str = fmt.Sprintf("%v", i.Value)
+	return
+}
+func ApplyContext(n *Node, ctx map[string]interface{}) (t *Node, err error) {
+
+	p := *n
+	t = &p
+	t.Params = make(map[string]Param)
+	for k, v := range n.Params {
+		if reflect.TypeOf(v) == reflect.TypeOf(VariableParam{}) {
+			switch ctx[v.String()].(type) {
+			case string:
+				t.Params[k] = StringParam{Value: []byte(ctx[v.String()].(string))}
+			case int64:
+				t.Params[k] = IntParam{Value: ctx[v.String()].(int64)}
+				break
+			default:
+				err = errors.New(fmt.Sprintf(
+					"Variable %s points to an incompatible type", v))
+			}
+
+		} else {
+			t.Params[k] = n.Params[k]
+		}
+	}
 	return
 }
