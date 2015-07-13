@@ -1,0 +1,40 @@
+// Copyright 2015 Sevki <s@sevki.org>. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:generate stringer -type ParamType
+
+// Package ast defines the data structures that are held in
+// http://facebook.github.io/graphql/#sec-Grammar
+package ast // import "sevki.org/graphql/ast"
+
+import (
+	"errors"
+	"fmt"
+	"reflect"
+)
+
+func ApplyContext(n *Node, ctx map[string]interface{}) (t *Node, err error) {
+
+	p := *n
+	t = &p
+	t.Params = make(map[string]Param)
+	for k, v := range n.Params {
+		if reflect.TypeOf(v) == reflect.TypeOf(VariableParam{}) {
+			switch ctx[v.String()].(type) {
+			case string:
+				t.Params[k] = StringParam{Value: []byte(ctx[v.String()].(string))}
+			case int64:
+				t.Params[k] = IntParam{Value: ctx[v.String()].(int64)}
+				break
+			default:
+				err = errors.New(fmt.Sprintf(
+					"Variable %s points to an incompatible type", v))
+			}
+
+		} else {
+			t.Params[k] = n.Params[k]
+		}
+	}
+	return
+}

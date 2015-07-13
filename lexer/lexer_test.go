@@ -5,38 +5,14 @@
 package lexer // import "sevki.org/graphql/lexer"
 
 import (
-	"bytes"
 	"fmt"
+	"os"
 	"testing"
 )
 
-const testQuery = `{
-  user(id: 3500401) {
-    id,
-    name,
-    isViewerFriend,
-    category(name: "best") {
-      id,
-      description
-    },
-    firends.Limit(20) {
-      id
-      user(id: $id) {
-         name
-      }
-    }
-    # This is tircky
-    profilePicture(size: 50)  {
-      uri,
-      width,
-      height
-    }
-  }
-}`
-
 func TestQuery(t *testing.T) {
-	sq := bytes.NewBuffer([]byte(testQuery))
-	l := New("sq", sq)
+	ks, _ := os.Open("../tests/complex-as-possible.graphql")
+	l := New("sq", ks)
 	for {
 		token := <-l.Tokens
 		if token.Type != Newline {
