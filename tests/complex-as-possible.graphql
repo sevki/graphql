@@ -17,7 +17,7 @@ query queryName($foo: ComplexType, $site: Site = MOBILE) @remote(addr: "https://
 		    id,
 		    ...frag
 		}, 
-		cropProfilePic(x: 0.005, y: 0x123) {
+		cropProfilePic(x: 0.005, y: 0xbeda12) {
 		    url
 		}
 	    }

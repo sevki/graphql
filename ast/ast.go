@@ -6,12 +6,13 @@
 
 // Package ast defines the data structures that are held in
 // http://facebook.github.io/graphql/#sec-Grammar
-package ast // import "sevki.org/graphql/ast"
+
+package ast // import "graphql.co/ast"
 
 import (
 	"fmt"
 
-	"sevki.org/graphql/lexer"
+	"graphql.co/token"
 )
 
 import (
@@ -228,22 +229,30 @@ type GraphQLError string
 
 func (GraphQLError) isValue() {}
 
-func GraphQLValue(t lexer.Token) Value {
+func GraphQLValue(t token.Token) Value {
 	switch t.Type {
-	case lexer.True:
+	case token.True:
 		return GraphQLBoolean(true)
-	case lexer.False:
+	case token.False:
 		return GraphQLBoolean(false)
-	case lexer.Number:
+	case token.Number:
 		if i, err := strconv.Atoi(string(t.Text)); err !=
 			nil {
 			return GraphQLError(err.Error())
 		} else {
 			return GraphQLInt(i)
 		}
-	case lexer.String:
+	case token.Hex:
+		var i int
+		if i, err := fmt.Sscanf(string(t.Text), "%X", &i); err !=
+			nil {
+			return GraphQLError(err.Error())
+		} else {
+			return GraphQLInt(i)
+		}
+	case token.String:
 		return GraphQLString(string(t.Text))
-	case lexer.Quote:
+	case token.Quote:
 		return GraphQLString(strings.Trim(string(t.Text), "\""))
 	default:
 		return GraphQLError(fmt.Sprintf("%s is not a GraphQL value", t.Type))

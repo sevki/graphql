@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:generate stringer -type Type
-
-package lexer // import "sevki.org/graphql/lexer"
+package lexer // import "graphql.co/lexer"
 
 import (
 	"bufio"
@@ -13,61 +11,18 @@ import (
 	"os"
 	"unicode"
 	"unicode/utf8"
+
+	"graphql.co/token"
 )
-
-type Token struct {
-	Type  Type
-	Line  int
-	Text  []byte
-	Start int
-	End   int
-}
-
-type Type int
 
 const eof = -1
-
-const (
-	EOF Type = iota
-	Error
-	Newline
-	String
-	Space
-	Number
-	Float
-	Hex
-	LeftCurly
-	RightCurly
-	LeftParen
-	RightParen
-	LeftBrac
-	RightBrac
-	Quote
-	Equal
-	Colon
-	Comma
-	Semicolon
-	Period
-	Comment
-	Pipe
-	Variable
-	Elipsis
-	Key
-	Directive
-	FragmentStart
-	QueryStart
-	MutationStart
-	On
-	True
-	False
-)
 
 // stateFn represents the state of the scanner as a function that returns the next state.
 type stateFn func(*Lexer) stateFn
 
 // lexer holds the state of the lexer.
 type Lexer struct {
-	Tokens chan Token // channel of scanned items
+	Tokens chan token.Token // channel of scanned items
 	r      io.ByteReader
 	done   bool
 	name   string // the name of the input; used only for error reports
@@ -92,7 +47,7 @@ func New(name string, r io.Reader) *Lexer {
 		r:      bufio.NewReader(r),
 		name:   name,
 		line:   1,
-		Tokens: make(chan Token),
+		Tokens: make(chan token.Token),
 	}
 	go l.run()
 	return l
@@ -101,7 +56,7 @@ func New(name string, r io.Reader) *Lexer {
 
 // errorf returns an error token and continues to scan.
 func (l *Lexer) errorf(format string, args ...interface{}) stateFn {
-	l.Tokens <- Token{Error, l.start, []byte(fmt.Sprintf(format, args...)), l.start, l.pos}
+	l.Tokens <- token.Token{token.Error, l.start, []byte(fmt.Sprintf(format, args...)), l.start, l.pos}
 	return lexAny
 }
 
@@ -127,16 +82,16 @@ func (l *Lexer) next() rune {
 	return r
 }
 
-func (l *Lexer) emit(t Type) {
-	if t == Newline {
+func (l *Lexer) emit(t token.Type) {
+	if t == token.Newline {
 		l.line++
 	}
 	s := l.input[l.start:l.pos]
 	if os.Getenv("DEBUG") == "true" {
-		fmt.Printf("%s:%d: emit %s\n", l.name, l.line, Token{t, l.line, []byte(s), l.start, l.pos})
+		fmt.Printf("%s:%d: emit %s\n", l.name, l.line, token.Token{t, l.line, []byte(s), l.start, l.pos})
 	}
-	if t != Newline {
-		l.Tokens <- Token{
+	if t != token.Newline {
+		l.Tokens <- token.Token{
 			t,
 			l.line,
 			[]byte(s),
@@ -194,7 +149,7 @@ func lexAny(l *Lexer) stateFn {
 		case r == eof:
 			return nil
 		case r == '(':
-			l.emit(LeftParen)
+			l.emit(token.LeftParen)
 			return lexAny
 		case unicode.IsDigit(r):
 			return lexNumber
@@ -205,28 +160,28 @@ func lexAny(l *Lexer) stateFn {
 		case r == '#':
 			return lexComment
 		case r == '{':
-			l.emit(LeftCurly)
+			l.emit(token.LeftCurly)
 			return lexAny
 		case r == '[':
-			l.emit(LeftBrac)
+			l.emit(token.LeftBrac)
 			return lexAny
 		case r == '(':
-			l.emit(LeftParen)
+			l.emit(token.LeftParen)
 			return lexAny
 		case r == ')':
-			l.emit(RightParen)
+			l.emit(token.RightParen)
 			return lexAny
 		case r == '}':
-			l.emit(RightCurly)
+			l.emit(token.RightCurly)
 			return lexAny
 		case r == ']':
-			l.emit(RightBrac)
+			l.emit(token.RightBrac)
 			return lexAny
 		case r == ':':
-			l.emit(Colon)
+			l.emit(token.Colon)
 			return lexAny
 		case r == '|':
-			l.emit(Pipe)
+			l.emit(token.Pipe)
 			return lexAny
 		case r == '.':
 			return lexPeriodOrElipsis
@@ -234,26 +189,26 @@ func lexAny(l *Lexer) stateFn {
 			l.ignore()
 			return lexAny
 		case r == '=':
-			l.emit(Equal)
+			l.emit(token.Equal)
 			return lexAny
 		case r == '"':
 			return lexQuote
 		case r == '@':
 			return lexDirective
 		case isEndOfLine(r):
-			l.emit(Newline)
+			l.emit(token.Newline)
 			return lexAny
 		case isSpace(r):
 			return lexSpace
 
 		}
 	}
-	return nil
+
 }
 
 func lexPeriodOrElipsis(l *Lexer) stateFn {
 	if l.peek() != '.' {
-		l.emit(Period)
+		l.emit(token.Period)
 		return lexAny
 	} else {
 		l.next()
@@ -264,7 +219,7 @@ func lexPeriodOrElipsis(l *Lexer) stateFn {
 				r)
 
 		}
-		l.emit(Elipsis)
+		l.emit(token.Elipsis)
 		return lexAny
 	}
 }
@@ -274,7 +229,7 @@ func lexQuote(l *Lexer) stateFn {
 		l.next()
 	}
 	if r := l.next(); r == '"' {
-		l.emit(Quote)
+		l.emit(token.Quote)
 	} else {
 		l.errorf("Unexpected character inside quote in position %d:%d character %q.",
 			l.line,
@@ -290,7 +245,7 @@ func lexVariable(l *Lexer) stateFn {
 	for isAlphaNumeric(l.peek()) {
 		l.next()
 	}
-	l.emit(Variable)
+	l.emit(token.Variable)
 	return lexAny
 }
 
@@ -298,7 +253,7 @@ func lexComment(l *Lexer) stateFn {
 	for !isEndOfLine(l.peek()) {
 		l.next()
 	}
-	//	l.emit(Comment)
+	//	l.emit(token.Comment)
 	l.ignore()
 	return lexAny
 }
@@ -311,25 +266,25 @@ func lexAlphaNumeric(l *Lexer) stateFn {
 	}
 	switch l.input[l.start:l.pos] {
 	case "fragment":
-		l.emit(FragmentStart)
+		l.emit(token.FragmentStart)
 		break
 	case "query":
-		l.emit(QueryStart)
+		l.emit(token.QueryStart)
 		break
 	case "mutation":
-		l.emit(MutationStart)
+		l.emit(token.MutationStart)
 		break
 	case "on":
-		l.emit(On)
+		l.emit(token.On)
 		break
 	case "true":
-		l.emit(True)
+		l.emit(token.True)
 		break
 	case "false":
-		l.emit(False)
+		l.emit(token.False)
 		break
 	default:
-		l.emit(String)
+		l.emit(token.String)
 	}
 
 	return lexAny
@@ -343,7 +298,7 @@ func lexDirective(l *Lexer) stateFn {
 		l.next()
 	}
 	if r := l.peek(); r == '(' || r == ' ' {
-		l.emit(Directive)
+		l.emit(token.Directive)
 		l.ignore()
 	} else {
 		l.errorf("Unexpected character inside directive in position %d:%d character %q.",
@@ -355,16 +310,25 @@ func lexDirective(l *Lexer) stateFn {
 }
 
 func lexNumber(l *Lexer) stateFn {
-	emitee := Number
+	emitee := token.Number
 	for isValidNumber(l.peek()) {
 		switch l.next() {
 		case '.':
-			emitee = Float
+			emitee = token.Float
 		case 'x':
-			emitee = Hex
+			return lexHex
 		}
 	}
 	l.emit(emitee)
+	return lexAny
+}
+
+// lexSpace lexes a hexadecimal
+func lexHex(l *Lexer) stateFn {
+	for isValidHex(l.peek()) {
+		l.next()
+	}
+	l.emit(token.Hex)
 	return lexAny
 }
 
@@ -402,5 +366,26 @@ func isValidQuote(r rune) bool {
 	return isAlphaNumeric(r) || isSpace(r)
 }
 func isValidNumber(r rune) bool {
-	return unicode.IsDigit(r) || r == '-' || r == '.' || r == 'x'
+	return unicode.IsDigit(r) ||
+		r == '-' ||
+		r == '.' ||
+		r == 'x'
+
+}
+func isValidHex(r rune) bool {
+	return unicode.IsDigit(r) ||
+		r == 'x' ||
+		r == 'X' ||
+		r == 'A' ||
+		r == 'a' ||
+		r == 'B' ||
+		r == 'b' ||
+		r == 'c' ||
+		r == 'C' ||
+		r == 'd' ||
+		r == 'D' ||
+		r == 'e' ||
+		r == 'E' ||
+		r == 'f' ||
+		r == 'F'
 }

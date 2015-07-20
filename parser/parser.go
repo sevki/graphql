@@ -4,22 +4,23 @@
 
 //go:generate stringer -type Type
 
-package parse
+package parser // import "graphql.co/parser"
 
 import (
 	"fmt"
 	"io"
 
-	"sevki.org/graphql/ast"
-	"sevki.org/graphql/lexer"
+	"graphql.co/ast"
+	"graphql.co/lexer"
+	"graphql.co/token"
 )
 
 type Parser struct {
 	name     string
 	lexer    *lexer.Lexer
 	state    stateFn
-	peekTok  lexer.Token
-	curTok   lexer.Token
+	peekTok  token.Token
+	curTok   token.Token
 	line     int
 	Error    error
 	Document *ast.Document
@@ -29,10 +30,10 @@ type Parser struct {
 
 type stateFn func(*Parser) stateFn
 
-func (p *Parser) peek() lexer.Token {
+func (p *Parser) peek() token.Token {
 	return p.peekTok
 }
-func (p *Parser) next() lexer.Token {
+func (p *Parser) next() token.Token {
 	tok := p.peekTok
 	p.peekTok = <-p.lexer.Tokens
 	p.curTok = tok
@@ -48,15 +49,15 @@ func (p *Parser) next() lexer.Token {
 	// 	yellow(p.peek().Type),
 	// 	p.peek().Text,
 	// )
-	if tok.Type == lexer.Error {
+	if tok.Type == token.Error {
 		p.errorf("%q", tok)
 	}
 
 	return tok
 }
 func (p *Parser) errorf(format string, args ...interface{}) {
-	p.curTok = lexer.Token{Type: lexer.Error}
-	p.peekTok = lexer.Token{Type: lexer.EOF}
+	p.curTok = token.Token{Type: token.Error}
+	p.peekTok = token.Token{Type: token.EOF}
 	p.Error = fmt.Errorf(format, args...)
 	//	log.panicln(p.Error.Error())
 }
@@ -85,7 +86,7 @@ func (p *Parser) run() {
 // parseDocumnent
 func parseDocument(p *Parser) stateFn {
 
-	for p.peek().Type != lexer.EOF {
+	for p.peek().Type != token.EOF {
 		return parseDefinition
 	}
 	return nil
@@ -94,16 +95,16 @@ func parseDocument(p *Parser) stateFn {
 // parseDefinition
 func parseDefinition(p *Parser) stateFn {
 	switch p.peek().Type {
-	case lexer.EOF:
+	case token.EOF:
 		return nil
-	case lexer.LeftCurly, lexer.QueryStart:
+	case token.LeftCurly, token.QueryStart:
 		return parseOperation
-	case lexer.MutationStart:
+	case token.MutationStart:
 		return parseOperation
-	case lexer.FragmentStart:
+	case token.FragmentStart:
 		return parseFragmentDefinition
 	default:
-		p.expect(p.peekTok, lexer.LeftCurly)
+		p.expect(p.peekTok, token.LeftCurly)
 		return nil
 	}
 }
@@ -113,12 +114,12 @@ func parseOperation(p *Parser) stateFn {
 	t := p.next()
 	var op ast.Operation
 
-	if t.Type == lexer.MutationStart {
+	if t.Type == token.MutationStart {
 		op.OperationType = ast.Mutation
 	} else {
 		op.OperationType = ast.Query
 	}
-	if t.Type == lexer.QueryStart {
+	if t.Type == token.QueryStart {
 		op.Name = ast.GraphQLName(p.next().Text)
 	}
 	p.Document.Definitions = append(p.Document.Definitions, &op)
@@ -128,11 +129,11 @@ func parseOperation(p *Parser) stateFn {
 
 func parseSelection(p *Parser) stateFn {
 	switch p.peek().Type {
-	case lexer.Elipsis:
+	case token.Elipsis:
 		return parseFragment
-	case lexer.String:
+	case token.String:
 		return parseField
-	case lexer.RightCurly:
+	case token.RightCurly:
 		return parseRightCurly
 	default:
 		return nil
@@ -140,7 +141,7 @@ func parseSelection(p *Parser) stateFn {
 }
 func parseSelectionSet(p *Parser) stateFn {
 
-	if p.expect(p.next(), lexer.LeftCurly) {
+	if p.expect(p.next(), token.LeftCurly) {
 		switch p.ptr.(type) {
 		case *ast.Field:
 			p.ptr.(*ast.Field).Parent = p.prnt
@@ -167,7 +168,7 @@ func parseRightCurly(p *Parser) stateFn {
 	}
 	p.ptr = p.prnt
 	switch p.peek().Type {
-	case lexer.Elipsis, lexer.String, lexer.RightCurly:
+	case token.Elipsis, token.String, token.RightCurly:
 		return parseSelection
 	default:
 		return parseDocument
@@ -176,12 +177,12 @@ func parseRightCurly(p *Parser) stateFn {
 func parseField(p *Parser) stateFn {
 
 	t := p.next()
-	if !p.expect(t, lexer.String) {
+	if !p.expect(t, token.String) {
 		return nil
 	}
 	var field ast.Field
 	field.Parent = p.prnt
-	if p.peek().Type == lexer.Colon {
+	if p.peek().Type == token.Colon {
 		field.Alias = ast.GraphQLName(t.Text)
 		p.next()
 		field.Name = ast.GraphQLName(p.next().Text)
@@ -195,7 +196,7 @@ func parseField(p *Parser) stateFn {
 	} else {
 		p.prnt.AddSelection(&field)
 	}
-	if p.peek().Type == lexer.Elipsis {
+	if p.peek().Type == token.Elipsis {
 		return parseSelection
 	} else {
 		p.ptr = &field
@@ -205,12 +206,12 @@ func parseField(p *Parser) stateFn {
 
 }
 func parseFragment(p *Parser) stateFn {
-	if !p.expect(p.next(), lexer.Elipsis) {
+	if !p.expect(p.next(), token.Elipsis) {
 		return nil
 	}
-	if p.peek().Type == lexer.On {
+	if p.peek().Type == token.On {
 		return parseInlineFragment
-	} else if p.peek().Type == lexer.String {
+	} else if p.peek().Type == token.String {
 		return parseFragmentSpread
 	} else {
 		return nil
@@ -233,19 +234,19 @@ func parseInlineFragment(p *Parser) stateFn {
 	frag := ast.Fragment{TypeCondition: ast.GraphQLName(t.Text)}
 	p.prnt.AddSelection(&frag)
 	p.ptr = &frag
-	if p.peek().Type == lexer.Directive {
+	if p.peek().Type == token.Directive {
 		return parseDirectives
 	}
 	return nil
 }
 func parseDirectives(p *Parser) stateFn {
 	//	log.Println(firstCaller())
-	for p.peek().Type == lexer.Directive {
+	for p.peek().Type == token.Directive {
 		t := p.next()
-		if !p.expect(t, lexer.Directive) {
+		if !p.expect(t, token.Directive) {
 			return nil
 		}
-		if p.peek().Type == lexer.LeftParen {
+		if p.peek().Type == token.LeftParen {
 
 			if p.ptr == nil {
 				op := p.Document.Definitions[len(p.Document.Definitions)-1].(*ast.Operation)
@@ -264,9 +265,9 @@ func parseDirectives(p *Parser) stateFn {
 
 	}
 
-	if p.peek().Type == lexer.LeftCurly {
+	if p.peek().Type == token.LeftCurly {
 		return parseSelectionSet
-	} else if p.peek().Type == lexer.RightCurly {
+	} else if p.peek().Type == token.RightCurly {
 		return parseRightCurly
 	} else {
 		return parseSelection
@@ -284,25 +285,25 @@ func parseArguments(p *Parser) stateFn {
 //--------------------------------------------------------------
 // parseArguments
 func (p *Parser) parseArguments() ast.Arguments {
-	if p.peek().Type == lexer.LeftParen {
+	if p.peek().Type == token.LeftParen {
 		p.next()
 		args := make(ast.Arguments)
-		for p.peek().Type != lexer.RightParen {
+		for p.peek().Type != token.RightParen {
 
 			key := p.next()
-			if !p.expect(key, lexer.String) {
+			if !p.expect(key, token.String) {
 				break
 			}
 
 			//followed by colon
-			if !p.expect(p.next(), lexer.Colon) {
+			if !p.expect(p.next(), token.Colon) {
 				break
 			}
 
-			if p.peek().Type == lexer.LeftBrac {
+			if p.peek().Type == token.LeftBrac {
 				var ary ast.ArrayValue
 				p.next() // advance left brac
-				for t := p.next(); t.Type != lexer.RightBrac; t = p.next() {
+				for t := p.next(); t.Type != token.RightBrac; t = p.next() {
 					ary = append(ary, ast.GraphQLValue(t))
 				}
 				args[string(key.Text)] = ary
@@ -318,31 +319,31 @@ func (p *Parser) parseArguments() ast.Arguments {
 	return nil
 }
 func parseVariables(p *Parser) stateFn {
-	if p.next().Type == lexer.LeftParen {
+	if p.next().Type == token.LeftParen {
 		op := p.Document.Definitions[len(p.Document.Definitions)-1].(*ast.Operation)
 		op.VariableDefinitions = make(ast.VariableDefinitions)
 
-		for p.peek().Type != lexer.RightParen {
+		for p.peek().Type != token.RightParen {
 
 			varName := p.next()
-			if !p.expect(varName, lexer.Variable) {
+			if !p.expect(varName, token.Variable) {
 				return nil
 			}
 
 			//followed by colon
-			if !p.expect(p.next(), lexer.Colon) {
+			if !p.expect(p.next(), token.Colon) {
 				return nil
 			}
 
 			typeName := p.next()
-			if !p.expect(typeName, lexer.String) {
+			if !p.expect(typeName, token.String) {
 				return nil
 			}
 
 			varb := ast.Variable{Type: ast.Type(typeName.Text)}
 
 			//followed by Equals
-			if p.peek().Type == lexer.Equal {
+			if p.peek().Type == token.Equal {
 				p.next()
 				varb.DefaultValue = ast.GraphQLString(p.next().Text)
 			}
@@ -355,22 +356,22 @@ func parseVariables(p *Parser) stateFn {
 }
 
 func parseFragmentDefinition(p *Parser) stateFn {
-	if !p.expect(p.next(), lexer.FragmentStart) {
+	if !p.expect(p.next(), token.FragmentStart) {
 		return nil
 	}
 	var frag ast.Fragment
 	t := p.next()
-	if !p.expect(t, lexer.String) {
+	if !p.expect(t, token.String) {
 		return nil
 	} else {
 		frag.FragmentName = ast.GraphQLName(string(t.Text))
 	}
 	p.Document.Definitions = append(p.Document.Definitions, &frag)
-	if !p.expect(p.next(), lexer.On) {
+	if !p.expect(p.next(), token.On) {
 		return nil
 	} else {
 		t = p.next()
-		if !p.expect(t, lexer.String) {
+		if !p.expect(t, token.String) {
 			return nil
 		} else {
 			frag.TypeCondition = ast.GraphQLName(string(t.Text))

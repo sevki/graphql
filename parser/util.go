@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package parse
+package parser // import "graphql.co/parser"
 
 import (
 	"bytes"
@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"sevki.org/graphql/ast"
-	"sevki.org/graphql/lexer"
+	"graphql.co/ast"
+	"graphql.co/token"
 )
 
 func caller() string {
@@ -40,7 +40,7 @@ func firstCaller() string {
 	}
 
 }
-func arrow(buf string, tok lexer.Token) string {
+func arrow(buf string, tok token.Token) string {
 	ret := ""
 	for i := 0; i < len(string(buf)); i++ {
 		if i >= tok.Start && i <= tok.End {
@@ -64,7 +64,7 @@ func arrow(buf string, tok lexer.Token) string {
 	}
 	return ret
 }
-func (p *Parser) expect(t lexer.Token, expected lexer.Type) bool {
+func (p *Parser) expect(t token.Token, expected token.Type) bool {
 	if t.Type != expected {
 		name := caller()
 		red := color.New(color.FgRed).SprintFunc()
@@ -100,7 +100,7 @@ func NewQuery(query []byte) (*ast.Document, error) {
 	var doc ast.Document
 	sq := bytes.NewBuffer([]byte(query))
 	p := New("sq", sq)
-	if p.Decode(&doc); p.curTok.Type == lexer.Error {
+	if p.Decode(&doc); p.curTok.Type == token.Error {
 		return nil, p.Error
 	} else {
 		return p.Document, nil
@@ -111,7 +111,7 @@ func NewQuery(query []byte) (*ast.Document, error) {
 func (p *Parser) Decode(i interface{}) (err error) {
 	p.Document = (i.(*ast.Document))
 	p.run()
-	if p.curTok.Type == lexer.Error {
+	if p.curTok.Type == token.Error {
 		return p.Error
 	}
 

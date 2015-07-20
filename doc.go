@@ -24,4 +24,4 @@ talked about this https://www.youtube.com/watch?v=9sc8Pyc51uU.
 I've also written about on my blog https://ffbyt.es/C39Q
 
 */
-package graphql // import "sevki.org/graphql"
+package graphql // import "graphql.co"
