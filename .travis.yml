@@ -7,9 +7,9 @@ go:
   
 install:
   - export GOPATH="$HOME/gopath"
-  - mkdir -p "$GOPATH/src/sevki.org/"
-  - mv "$TRAVIS_BUILD_DIR" "$GOPATH/src/sevki.org/graphql"
-  - go get -v -t -d sevki.org/graphql/...
+  - mkdir -p "$GOPATH/src/graqhql.co/"
+  - mv "$TRAVIS_BUILD_DIR" "$GOPATH/src/graphql.co/graphql"
+  - go get -v -t -d graphql.co/graphql/...
 
 script:
-  - go test -v sevki.org/graphql/...
+  - go test -v graphql.co/graphql/...
