@@ -3,14 +3,12 @@
 // license that can be found in the LICENSE file.
 
 /*
-Package graphql implements the graphql specification  that
-is yet to  be released.
+Package graphql implements the graphql spec https://sevki.co/2rmgfV
 
 What it is
 
-What GraphQL currently gives you is an abstract syntax tree after
-receiving which you need to figure out how to execute it, an example
-of such an application lives at https://sevki.org/g2sd.
+Go implementation aims to give users tools that are necessary to
+implement their own GraphQL endpoints.
 
 More info
 
