@@ -4,15 +4,15 @@
 
 //go:generate stringer -type Type
 
-package parser // import "graphql.co/parser"
+package parser // import "graphql.co/graphql/parser"
 
 import (
 	"fmt"
 	"io"
 
-	"graphql.co/ast"
-	"graphql.co/lexer"
-	"graphql.co/token"
+	"graphql.co/graphql/ast"
+	"graphql.co/graphql/lexer"
+	"graphql.co/graphql/token"
 )
 
 type Parser struct {

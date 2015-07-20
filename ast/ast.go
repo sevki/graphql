@@ -7,12 +7,12 @@
 // Package ast defines the data structures that are held in
 // http://facebook.github.io/graphql/#sec-Grammar
 
-package ast // import "graphql.co/ast"
+package ast // import "graphql.co/graphql/ast"
 
 import (
 	"fmt"
 
-	"graphql.co/token"
+	"graphql.co/graphql/token"
 )
 
 import (

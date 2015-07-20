@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package lexer // import "graphql.co/lexer"
+package lexer // import "graphql.co/graphql/lexer"
 
 import (
 	"bufio"
@@ -12,7 +12,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"graphql.co/token"
+	"graphql.co/graphql/token"
 )
 
 const eof = -1

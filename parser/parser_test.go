@@ -2,14 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package parser // import "graphql.co/parser"
+package parser // import "graphql.co/graphql/parser"
 
 import (
 	"log"
 	"os"
 	"testing"
 
-	"graphql.co/ast"
+	"graphql.co/graphql/ast"
 	"sevki.org/lib/prettyprint"
 )
 

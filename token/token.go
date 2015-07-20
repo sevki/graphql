@@ -4,7 +4,7 @@
 
 //go:generate stringer -type Type
 
-package token // import "graphql.co/token"
+package token // import "graphql.co/graphql/token"
 
 type Token struct {
 	Type  Type
