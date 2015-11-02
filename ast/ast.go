@@ -6,7 +6,6 @@
 
 // Package ast defines the data structures that are held in
 // http://facebook.github.io/graphql/#sec-Grammar
-
 package ast // import "graphql.co/graphql/ast"
 
 import (
