@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package parser // import "graphql.co/graphql/parser"
+package parser // import "sevki.org/graphql/parser"
 
 import (
 	"bytes"
@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"graphql.co/graphql/ast"
-	"graphql.co/graphql/token"
+	"sevki.org/graphql/ast"
+	"sevki.org/graphql/token"
 )
 
 func caller() string {
